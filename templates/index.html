@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DNA Explorer | DNA Analysis with Biopython</title>
+  <meta name="description" content="Paste a DNA sequence and explore its composition, reverse complement, RNA and protein. Built with Flask and Biopython.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="loading">
+
+  <!-- 1. Preloader -->
+  <div id="preloader" class="preloader gradient-bg">
+    <svg class="pulse" viewBox="0 0 160 40" aria-hidden="true">
+      <path d="M0 20 C 10 4, 20 4, 30 20 S 50 36, 60 20 S 80 4, 90 20 S 110 36, 120 20 S 140 4, 160 20"/>
+      <path d="M0 20 C 10 36, 20 36, 30 20 S 50 4, 60 20 S 80 36, 90 20 S 110 4, 120 20 S 140 36, 160 20"/>
+    </svg>
+    <p class="preloader-text">Biology starts here.</p>
+  </div>
+
+  <!-- 2. Header -->
+  <header class="site-header">
+    <a href="#top" class="logo" aria-label="DNA Explorer home">
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <circle cx="24" cy="24" r="22" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path d="M16 8 C 32 18, 32 30, 16 40" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        <path d="M32 8 C 16 18, 16 30, 32 40" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        <path d="M19 13 H29 M18 24 H30 M19 35 H29" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </a>
+    <button id="menu-btn" class="menu-btn" aria-expanded="false" aria-controls="menu">
+      Menu <span class="dots" aria-hidden="true">⁘</span>
+    </button>
+  </header>
+
+  <nav id="menu" class="menu gradient-bg" aria-hidden="true">
+    <a href="#top">Home</a>
+    <a href="#story">How it works</a>
+    <a href="#analyse">Analyse</a>
+  </nav>
+
+  <main>
+    <!-- 3. Hero -->
+    <section id="top" class="hero gradient-bg">
+      <canvas id="hero-helix" class="hero-helix" aria-hidden="true"></canvas>
+      <h1 class="hero-title reveal">
+        <span class="line indent">DNA</span>
+        <span class="line">Explorer</span>
+      </h1>
+      <p class="hero-sub reveal">A web-based DNA analysis tool<br>using Biopython</p>
+      <a href="#story" class="scroll-cue">Scroll down <span aria-hidden="true">↓</span></a>
+    </section>
+
+    <!-- 4. Story: DNA → RNA → protein -->
+    <section id="story" class="story light-bg">
+      <canvas id="story-helix" class="story-helix" aria-hidden="true"></canvas>
+      <div class="story-content">
+        <div class="slides">
+          <p class="slide active">Every living cell carries <strong>DNA</strong>, a long code written with four letters: A, T, G and C. The order of those letters is the recipe for building life.</p>
+          <p class="slide">To use a recipe, the cell first copies DNA into <strong>RNA</strong>. This step is called transcription. The copy is almost identical, except every T becomes U.</p>
+          <p class="slide">Finally, the cell reads RNA three letters at a time. Each group of three, a <strong>codon</strong>, adds one amino acid to a growing <strong>protein</strong>. This step is called translation.</p>
+        </div>
+        <div class="slide-nav">
+          <span id="slide-count">1/3</span>
+          <button class="progress" id="slide-next" aria-label="Next slide"><span id="slide-bar"></span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Analyse form -->
+    <section id="analyse" class="analyse gradient-bg">
+      <div class="analyse-left">
+        <h2 class="big-serif reveal">Analyse your<br>sequence</h2>
+        <div class="info">
+          <p class="eyebrow">Accepted letters</p>
+          <p class="legend">
+            <span class="b-A">A</span> Adenine<br>
+            <span class="b-T">T</span> Thymine<br>
+            <span class="b-G">G</span> Guanine<br>
+            <span class="b-C">C</span> Cytosine
+          </p>
+          <p class="eyebrow">Also accepted</p>
+          <p class="legend">FASTA files with one sequence</p>
+        </div>
+      </div>
+
+      <div class="analyse-form">
+        <label for="sequence" class="eyebrow">DNA sequence*</label>
+        <textarea id="sequence" rows="4" spellcheck="false" placeholder="Paste or type your DNA, e.g. ATGGCC"></textarea>
+        <div id="preview" class="preview" aria-live="polite"></div>
+        <p id="error" class="error" role="alert"></p>
+        <div class="buttons">
+          <button id="example" class="btn">Load example</button>
+          <label class="btn file-btn">Upload FASTA<input id="fasta" type="file" accept=".fasta,.fa,.fna,.txt"></label>
+          <button id="clear" class="btn">Clear</button>
+          <button id="analyze" class="btn solid">Analyse <span aria-hidden="true">⁘</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. Results -->
+    <section id="results" class="results gradient-bg hidden">
+      <p class="eyebrow section-label">Your results</p>
+
+      <article class="result-row">
+        <span class="num">01</span>
+        <h3 class="big-serif">Sequence length : <em id="length"></em></h3>
+        <p class="explain">The number of bases (letters) in your DNA. Every base is one A, T, G or C.</p>
+      </article>
+
+      <article class="result-row">
+        <span class="num">02</span>
+        <h3 class="big-serif">GC <em id="gc"></em> · AT <em id="at"></em></h3>
+        <p class="explain">GC percentage tells you how much of your sequence consists of G and C. G and C pair with three hydrogen bonds (A and T use two), so GC-rich DNA is more stable. AT is always 100 minus GC.</p>
+        <div id="chart" class="chart"></div>
+      </article>
+
+      <article class="result-row">
+        <span class="num">03</span>
+        <h3 class="big-serif">Reverse complement</h3>
+        <p class="explain">The opposite strand, read backwards. A pairs with T and G pairs with C.</p>
+        <div class="seq-wrap"><pre id="revcomp" class="seq"></pre><button class="copy" data-target="revcomp">Copy</button></div>
+      </article>
+
+      <article class="result-row">
+        <span class="num">04</span>
+        <h3 class="big-serif">RNA : Transcription</h3>
+        <p class="explain">The messenger RNA copy of your sequence. Every T becomes U.</p>
+        <div class="seq-wrap"><pre id="rna" class="seq"></pre><button class="copy" data-target="rna">Copy</button></div>
+      </article>
+
+      <article class="result-row">
+        <span class="num">05</span>
+        <h3 class="big-serif">Protein : Translation</h3>
+        <p class="explain">Each codon (three bases) becomes one amino acid, using the standard genetic code. A * marks a stop codon.</p>
+        <div class="seq-wrap"><pre id="protein" class="seq protein"></pre><button class="copy" data-target="protein">Copy</button></div>
+        <p id="skipped" class="note"></p>
+      </article>
+
+      <div class="download-row">
+        <button id="download" class="btn solid">Download results <span aria-hidden="true">↓</span></button>
+      </div>
+    </section>
+  </main>
+
+  <!-- 7. Footer -->
+  <footer class="site-footer gradient-bg">
+    <p class="footer-title big-serif">DNA Explorer</p>
+    <div class="footer-cols">
+      <div>
+        <p class="eyebrow">Built with</p>
+        <p>Python · Flask · Biopython<br>HTML · CSS · JavaScript</p>
+      </div>
+      <div>
+        <p class="eyebrow">Method</p>
+        <p>Input is treated as the coding strand and translated from the first base with the standard genetic code.</p>
+      </div>
+      <div>
+        <p class="eyebrow">Project</p>
+        <p>BMS College of Engineering<br>© 2026</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/helix.js"></script>
+  <script src="/script.js"></script>
+</body>
+</html>
